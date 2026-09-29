@@ -55,8 +55,8 @@ export function getUserProfile () {
       req.app.locals.abused_ssti_bug = true
       const code = username?.substring(2, username.length - 1)
       try {
-        if (!code) {
-          throw new Error('Username is null')
+        if (!code || code.includes('${') || code.includes('#{')) {
+          throw new Error('Username is null or unsafe')
         }
         const singleQuoteRegex = /^'(?:[^'\\]|\\.)*'$/
         const doubleQuoteRegex = /^"(?:[^"\\]|\\.)*"$/
@@ -64,11 +64,13 @@ export function getUserProfile () {
         const numericRegex = /^-?\d+(?:\.\d+)?$/
         const booleanRegex = /^(?:true|false|null|undefined)$/
 
-        const isSafe = singleQuoteRegex.test(code) ||
+        const isSafe = !code.includes('${') &&
+          !code.includes('#{') &&
+          (singleQuoteRegex.test(code) ||
           doubleQuoteRegex.test(code) ||
           backtickRegex.test(code) ||
           numericRegex.test(code) ||
-          booleanRegex.test(code)
+          booleanRegex.test(code))
 
         if (!isSafe) {
           throw new Error('Unsafe code execution blocked')
